@@ -1,0 +1,139 @@
+const express = require('express');
+const app = express();
+const sql = require('mssql');
+const PORT = 8080;
+
+// Enable CORS
+const cors = require('cors');
+app.use(cors());
+
+// Middleware
+app.use(express.json());
+
+
+
+// SQL Server configuration
+const sqlConfig = {
+    user: 'squwsun',
+    password: '@2001n12Y28',
+    database: 'pubs',
+    server: 'coop-server-henry.database.windows.net',
+    options: {
+        encrypt: true, // Use encryption for Azure
+        trustServerCertificate: true // CTrue for local dev / self-signed certs
+    }
+};
+
+// Route to display authors table
+app.get('/author_table_display', async (req, res) => {
+    try {
+        await sql.connect(sqlConfig);
+        
+        const result = await sql.query`SELECT * FROM authors`;
+
+        // Response
+        res.status(200).send({
+            Message: "Data retrieved successfully",
+            Result: true,
+            Data: result.recordset
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            Message: "Error retrieving data from author table",
+            Result: false,
+            Data: null
+        });
+    } finally {
+        await sql.close();
+    }
+});
+
+// Route to get data for a specific author by au_id
+app.get('/author/:id', async (req, res) => {
+    const authorId = req.params.id;
+    
+    try {
+        await sql.connect(sqlConfig);
+        
+        const result = await sql.query`SELECT * FROM authors WHERE au_id = ${authorId}`;
+        
+
+
+        if (result.recordset.length > 0) {
+            res.status(200).send({
+                Message: "Author data retrieved successfully",
+                Result: true,
+                Data: result.recordset[0]
+            });
+        } else {
+            res.status(404).send({
+                Message: "Author not found",
+                Result: false,
+                Data: null
+            });
+        }
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            Message: "Error retrieving author data",
+            Result: false,
+            Data: null
+        });
+    } finally {
+        await sql.close();
+    }
+});
+
+
+app.put('/author/:id/update', async (req, res) => {
+    
+    const { au_id, au_lname, au_fname, phone, address, city, state, zip, contract } = req.body;
+
+    try {
+        await sql.connect(sqlConfig)
+
+        const result = await sql.query`
+            UPDATE authors
+            SET
+                au_lname = ${au_lname},
+                au_fname = ${au_fname},
+                phone = ${phone},
+                address = ${address},
+                city = ${city},
+                state = ${state},
+                zip = ${zip},
+                contract = ${contract}
+            WHERE au_id = ${au_id}
+        `;
+
+
+        if (result.rowsAffected[0] > 0) {
+            res.status(200).send({
+                Message: "Author data updated successfully",
+                Result: true,
+                Data: null
+            })
+        } else {
+            res.status(404).send({
+                Message: "Author not found",
+                Result: false,
+                Data: null
+            });
+        }
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            Message: "Error updating author data",
+            Result: false,
+            Data: null
+        });
+    } finally {
+        await sql.close();
+    }
+});
+
+
+// Start the server
+app.listen(PORT, () => console.log(`Server is running on http://localhost:${PORT}`));
