@@ -135,5 +135,70 @@ app.put('/author/:id/update', async (req, res) => {
 });
 
 
+
+app.post('/author/create', async (req, res) => {
+    const { au_id, au_lname, au_fname, phone, address, city, state, zip, contract } = req.body;
+
+    try {
+        await sql.connect(sqlConfig);
+        
+        const result = await sql.query`
+            INSERT INTO authors (au_id, 
+                                 au_lname, 
+                                 au_fname, 
+                                 phone, 
+                                 address, 
+                                 city, 
+                                 state, 
+                                 zip, 
+                                 contract)
+            VALUES              (${au_id}, 
+                                 ${au_lname}, 
+                                 ${au_fname}, 
+                                 ${phone}, 
+                                 ${address}, 
+                                 ${city}, 
+                                 ${state}, 
+                                 ${zip}, 
+                                 ${contract})
+        `;
+
+        if (result.rowsAffected[0] > 0) {
+            res.status(201).send({
+                Message: "Author created successfully",
+                Result: true,
+                Data: {
+                    au_id,
+                    au_lname,
+                    au_fname,
+                    phone,
+                    address,
+                    city,
+                    state,
+                    zip,
+                    contract
+                }
+            });
+        } else {
+            res.status(400).send({
+                Message: "Failed to create author",
+                Result: false,
+                Data: null
+            });
+        }
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            Message: "Error creating new author",
+            Result: false,
+            Data: null
+        });
+    } finally {
+        await sql.close();
+    }
+});
+
+
+
 // Start the server
 app.listen(PORT, () => console.log(`Server is running on http://localhost:${PORT}`));
