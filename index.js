@@ -139,6 +139,12 @@ app.put('/author/:id/update', async (req, res) => {
 app.post('/author/create', async (req, res) => {
     const { au_id, au_lname, au_fname, phone, address, city, state, zip, contract } = req.body;
 
+    const address_post  = address || null;
+    const city_post = city || null;
+    const state_post = state || null;
+    const zip_post = zip || null;
+
+
     try {
         await sql.connect(sqlConfig);
         
@@ -156,10 +162,10 @@ app.post('/author/create', async (req, res) => {
                                  ${au_lname}, 
                                  ${au_fname}, 
                                  ${phone}, 
-                                 ${address}, 
-                                 ${city}, 
-                                 ${state}, 
-                                 ${zip}, 
+                                 ${address_post}, 
+                                 ${city_post}, 
+                                 ${state_post}, 
+                                 ${zip_post}, 
                                  ${contract})
         `;
 
@@ -193,6 +199,38 @@ app.post('/author/create', async (req, res) => {
             Result: false,
             Data: null
         });
+    } finally {
+        await sql.close();
+    }
+});
+
+
+app.get('/author/check-id/:id', async (req, res) => {
+    const authorId = req.params.id;
+
+    try {
+        await sql.connect(sqlConfig)
+
+        const result = await sql.query`
+            SELECT COUNT(*) AS count 
+            FROM authors 
+            WHERE au_id = ${authorId}
+        `
+
+        const exists = result.recordset[0].count > 0;
+
+        res.status(200).send({
+            Message: "Check completed successfully",
+            Result: true,
+            Exists: exists
+        })
+    } catch (error) {
+        console.error(error)
+        res.status(500).send({
+            Message: "Error checking for duplicated author ID",
+            Result: false,
+            Exists: null
+        })
     } finally {
         await sql.close();
     }
