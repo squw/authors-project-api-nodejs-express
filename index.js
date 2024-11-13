@@ -237,6 +237,38 @@ app.get('/author/check-id/:id', async (req, res) => {
 });
 
 
+app.delete('/author/delete/:id', async (req, res) => {
+    const authorId= req.params.id;
+
+    try {
+        await sql.connect(sqlConfig);
+        const result = await sql.query`
+            DELETE FROM authors 
+            WHERE au_id = ${authorId}
+        `;
+
+        if (result.rowsAffected[0] > 0) {
+            res.status(200).send({
+                Message: "Author deleted successfully",
+                Result: true
+            });
+        } else {
+            res.status(404).send({
+                Message: "Author not found",
+                Result: false
+            });
+        }
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            Message: "Error deleting author",
+            Result: false
+        });
+    } finally {
+        await sql.close();
+    }
+});
+
 
 // Start the server
 app.listen(PORT, () => console.log(`Server is running on http://localhost:${PORT}`));
