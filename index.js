@@ -1,3 +1,5 @@
+import { sqlConfig } from './sqlConfig';
+
 const express = require('express');
 const app = express();
 const sql = require('mssql');
@@ -12,17 +14,7 @@ app.use(express.json());
 
 
 
-// SQL Server configuration
-const sqlConfig = {
-    user: 'squwsun',
-    password: '@2001n12Y28',
-    database: 'pubs',
-    server: 'coop-server-henry.database.windows.net',
-    options: {
-        encrypt: true, // Use encryption for Azure
-        trustServerCertificate: true // CTrue for local dev / self-signed certs
-    }
-};
+
 
 // Route to display authors table
 app.get('/author_table_display', async (req, res) => {
