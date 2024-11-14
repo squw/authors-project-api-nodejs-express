@@ -43,4 +43,4 @@ Thumbs.db
 
 
 # DB configs
-sqlConfigs.ts
+sqlConfig.ts
