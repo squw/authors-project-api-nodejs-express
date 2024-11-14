@@ -1,5 +1,3 @@
-import { sqlConfig } from './sqlConfig';
-
 const express = require('express');
 const app = express();
 const sql = require('mssql');
@@ -13,8 +11,18 @@ app.use(cors());
 app.use(express.json());
 
 
+require('dotenv').config();
 
-
+const sqlConfig = {
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_DATABASE,
+    server: process.env.DB_SERVER,
+    options: {
+        encrypt: true, // Use encryption for Azure
+        trustServerCertificate: true // True for local dev / self-signed certs
+    }
+};
 
 // Route to display authors table
 app.get('/author_table_display', async (req, res) => {
