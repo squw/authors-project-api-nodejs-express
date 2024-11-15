@@ -25,15 +25,15 @@ const sqlConfig = {
 };
 
 // Route to display authors table
-app.get('/author_table_display', async (req, res) => {
+app.get('/author/table-display', async (req, res) => {
     try {
         await sql.connect(sqlConfig);
-        
+
         const result = await sql.query`SELECT * FROM authors`;
 
         // Response
         res.status(200).send({
-            Message: "Data retrieved successfully",
+            Message: "Author data retrieved successfully",
             Result: true,
             Data: result.recordset
         });
@@ -49,15 +49,40 @@ app.get('/author_table_display', async (req, res) => {
     }
 });
 
+
+// Route to display titles table
+app.get('/title/table-display', async (req, res) => {
+    try {
+        await sql.connect(sqlConfig);
+
+        const result = await sql.query`SELECT * FROM titles`;
+
+        res.status(200).send({
+            Message: "Title data retrieved successfully",
+            Result: true,
+            Data: result.recordset
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            Message: "Error retrieving data from title table",
+            Result: false,
+            Data: null
+        })
+    } finally {
+        await sql.close();
+    }
+});
+
 // Route to get data for a specific author by au_id
 app.get('/author/:id', async (req, res) => {
     const authorId = req.params.id;
-    
+
     try {
         await sql.connect(sqlConfig);
-        
+
         const result = await sql.query`SELECT * FROM authors WHERE au_id = ${authorId}`;
-        
+
 
 
         if (result.recordset.length > 0) {
@@ -85,9 +110,9 @@ app.get('/author/:id', async (req, res) => {
     }
 });
 
-
+// Route to update author details
 app.put('/author/:id/update', async (req, res) => {
-    
+
     const { au_id, au_lname, au_fname, phone, address, city, state, zip, contract } = req.body;
 
     try {
@@ -135,11 +160,11 @@ app.put('/author/:id/update', async (req, res) => {
 });
 
 
-
+// Route to create new author
 app.post('/author/create', async (req, res) => {
     const { au_id, au_lname, au_fname, phone, address, city, state, zip, contract } = req.body;
 
-    const address_post  = address || null;
+    const address_post = address || null;
     const city_post = city || null;
     const state_post = state || null;
     const zip_post = zip || null;
@@ -147,7 +172,7 @@ app.post('/author/create', async (req, res) => {
 
     try {
         await sql.connect(sqlConfig);
-        
+
         const result = await sql.query`
             INSERT INTO authors (au_id, 
                                  au_lname, 
@@ -204,7 +229,7 @@ app.post('/author/create', async (req, res) => {
     }
 });
 
-
+// Route for checking duplicate ID upon creation
 app.get('/author/check-id/:id', async (req, res) => {
     const authorId = req.params.id;
 
@@ -237,8 +262,42 @@ app.get('/author/check-id/:id', async (req, res) => {
 });
 
 
+// Route to check whether author has titles associated upon delete
+app.get('/author/check-titles/:id', async (req, res) => {
+    const authorId = req.params.id
+
+    try {
+        await sql.connect(sqlConfig)
+
+        const result = await sql.query`
+            SELECT COUNT(*) AS count
+            FROM titleauthor
+            WHERE au_id = ${authorId}
+        `
+
+        const exists = result.recordset[0].count > 0;
+
+        res.status(200).send({
+            Message: "Check for author title completed successfully",
+            Result: true,
+            Exists: exists
+        })
+    } catch (error) {
+        console.error(error)
+        res.status(500).send({
+            Message: "Error checking for author title",
+            Result: false,
+            Exists: exists
+        })
+    } finally {
+        await sql.close();
+    }
+});
+
+
+// Route to delete author
 app.delete('/author/delete/:id', async (req, res) => {
-    const authorId= req.params.id;
+    const authorId = req.params.id;
 
     try {
         await sql.connect(sqlConfig);
