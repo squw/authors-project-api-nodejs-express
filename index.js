@@ -110,6 +110,68 @@ app.get('/author/:id', async (req, res) => {
     }
 });
 
+
+// Route to get data for a specific title by title_id
+app.get('/title/:id', async (req, res) => {
+    const titleId = req.params.id;
+
+    try {
+        await sql.connect(sqlConfig);
+
+        const result = await sql.query`
+            SELECT 
+                t.title_id,
+                t.title,
+                TRIM(t.type) AS type,
+                t.pub_id,
+                p.pub_name,
+                t.price,
+                t.advance,
+                t.royalty,
+                t.ytd_sales,
+                t.notes,
+                t.pubdate,
+                COUNT(s.ord_num) AS sales_count
+            FROM 
+                titles t
+            LEFT JOIN 
+                publishers p ON t.pub_id = p.pub_id
+            LEFT JOIN 
+                sales s ON t.title_id = s.title_id
+            WHERE 
+                t.title_id = ${titleId}
+            GROUP BY 
+                t.title_id, t.title, t.type, t.pub_id, p.pub_name, t.price, t.advance, t.royalty, t.ytd_sales, t.notes, t.pubdate;
+        `;
+
+
+
+        if (result.recordset.length > 0) {
+            res.status(200).send({
+                Message: "Title data retrieved successfully",
+                Result: true,
+                Data: result.recordset[0]
+            });
+        } else {
+            res.status(404).send({
+                Message: "Title not found",
+                Result: false,
+                Data: null
+            });
+        }
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            Message: "Error retrieving title data",
+            Result: false,
+            Data: null
+        });
+    } finally {
+        await sql.close();
+    }
+});
+
+
 // Route to update author details
 app.put('/author/:id/update', async (req, res) => {
 
@@ -229,7 +291,7 @@ app.post('/author/create', async (req, res) => {
     }
 });
 
-// Route for checking duplicate ID upon creation
+// Route for checking duplicate author ID upon creation
 app.get('/author/check-id/:id', async (req, res) => {
     const authorId = req.params.id;
 
@@ -262,6 +324,38 @@ app.get('/author/check-id/:id', async (req, res) => {
 });
 
 
+// Route for checking duplicate title ID upon creation
+app.get('/title/check-id/:id', async (req, res) => {
+    const titleId = req.params.id;
+
+    try {
+        await sql.connect(sqlConfig)
+
+        const result = await sql.query`
+            SELECT COUNT(*) AS count 
+            FROM titles 
+            WHERE title_id = ${titleId}
+        `
+
+        const exists = result.recordset[0].count > 0;
+
+        res.status(200).send({
+            Message: "Check completed successfully",
+            Result: true,
+            Exists: exists
+        })
+    } catch (error) {
+        console.error(error)
+        res.status(500).send({
+            Message: "Error checking for duplicated title ID",
+            Result: false,
+            Exists: null
+        })
+    } finally {
+        await sql.close();
+    }
+});
+
 // Route to check whether author has titles associated upon delete
 app.get('/author/check-titles/:id', async (req, res) => {
     const authorId = req.params.id
@@ -286,6 +380,38 @@ app.get('/author/check-titles/:id', async (req, res) => {
         console.error(error)
         res.status(500).send({
             Message: "Error checking for author title",
+            Result: false,
+            Exists: exists
+        })
+    } finally {
+        await sql.close();
+    }
+});
+
+// Route to check whether title has sales associated upon delete
+app.get('/title/check-sales/:id', async (req, res) => {
+    const titleId = req.params.id
+
+    try {
+        await sql.connect(sqlConfig)
+
+        const result = await sql.query`
+            SELECT COUNT(*) AS count
+            FROM sales
+            WHERE title_id = ${titleId}
+        `
+
+        const exists = result.recordset[0].count > 0;
+
+        res.status(200).send({
+            Message: "Check for title sales completed successfully",
+            Result: true,
+            Exists: exists
+        })
+    } catch (error) {
+        console.error(error)
+        res.status(500).send({
+            Message: "Error checking for title sales",
             Result: false,
             Exists: exists
         })
@@ -328,6 +454,68 @@ app.delete('/author/delete/:id', async (req, res) => {
     }
 });
 
+
+// Route to delete title
+app.delete('/title/delete/:id', async (req, res) => {
+    const titleId = req.params.id;
+
+    try {
+        await sql.connect(sqlConfig);
+        const transaction = new sql.Transaction();
+        await transaction.begin();
+
+        try {
+
+            // remove entries from titleauthor table
+            await transaction.request().query`
+                DELETE FROM titleauthor
+                WHERE title_id = ${titleId}
+            `;
+
+            // remove entries from roysched table
+            await transaction.request().query`
+                DELETE FROM roysched
+                WHERE title_id = ${titleId}
+            `;
+
+            // remove title entry
+            const result = await transaction.request().query`
+                DELETE FROM titles
+                WHERE title_id = ${titleId}
+            `;
+
+            if (result.rowsAffected[0] > 0) {
+                await transaction.commit();
+                res.status(200).send({
+                    Message: "Title and related entries deleted successfully",
+                    Result: true
+                })
+            } else {
+                await transaction.rollback();
+                res.status(404).send({
+                    Message: "Title not found",
+                    Result: false
+                })
+            }
+        } catch (queryError) {
+            await transaction.rollback();
+            console.error(queryError);
+            res.status(500).send({
+                Message: "Error deleting title and related entries",
+                Result: false
+            })
+        }
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            Message: "Error connecting to database",
+            Result: false
+        });
+    } finally {
+        await sql.close();
+    }
+});
 
 // Start the server
 app.listen(PORT, () => console.log(`Server is running on http://localhost:${PORT}`));
