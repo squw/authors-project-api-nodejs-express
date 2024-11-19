@@ -171,6 +171,43 @@ app.get('/title/:id', async (req, res) => {
     }
 });
 
+// Route to display title author(s)
+app.get('/title/:id/author', async (req, res) => {
+    const titleId = req.params.id;
+
+    try {
+        await sql.connect(sqlConfig);
+
+        const result = await sql.query`
+            SELECT 
+                ta.au_id,
+                a.au_fname,
+                a.au_lname,
+                ta.au_ord,
+                ta.royaltyper
+            FROM titleauthor ta
+            JOIN authors a ON a.au_id = ta.au_id
+            WHERE title_id = ${titleId}
+            ORDER BY ta.au_ord
+        `;
+
+        res.status(200).send({
+            Message: "Title author data retrieved successfully",
+            Result: true,
+            Data: result.recordset
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            Message: "Error retrieving data from title author table",
+            Result: false,
+            Data: null
+        })
+    } finally {
+        await sql.close();
+    }
+});
+
 
 // Route to update author details
 app.put('/author/:id/update', async (req, res) => {
