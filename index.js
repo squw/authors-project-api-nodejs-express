@@ -328,6 +328,16 @@ app.post('/author/create', async (req, res) => {
     }
 });
 
+// Route to add author to a title
+app.post('/title/:id/author/add', async (req, res) => {
+    const titleId = req.params.id;
+
+    const { au_id, au_order, royaltyper } = req.body;
+
+    
+});
+
+
 // Route for checking duplicate author ID upon creation
 app.get('/author/check-id/:id', async (req, res) => {
     const authorId = req.params.id;
