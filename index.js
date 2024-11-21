@@ -262,7 +262,8 @@ app.put('/author/:id/update', async (req, res) => {
 // Route to create new author
 app.post('/author/create', async (req, res) => {
     const { au_id, au_lname, au_fname, phone, address, city, state, zip, contract } = req.body;
-
+    
+    const phone_post = phone | null;
     const address_post = address || null;
     const city_post = city || null;
     const state_post = state || null;
@@ -285,7 +286,7 @@ app.post('/author/create', async (req, res) => {
             VALUES              (${au_id}, 
                                  ${au_lname}, 
                                  ${au_fname}, 
-                                 ${phone}, 
+                                 ${phone_post}, 
                                  ${address_post}, 
                                  ${city_post}, 
                                  ${state_post}, 
@@ -332,9 +333,53 @@ app.post('/author/create', async (req, res) => {
 app.post('/title/:id/author/add', async (req, res) => {
     const titleId = req.params.id;
 
-    const { au_id, au_order, royaltyper } = req.body;
+    const { au_id, au_ord, royaltyper } = req.body;
 
-    
+    try {
+        await sql.connect(sqlConfig);
+        const result = await sql.query`
+            INSERT INTO titleauthor (
+                                     au_id,
+                                     title_id,
+                                     au_ord,
+                                     royaltyper
+            )
+            VALUES                  (
+                                     ${au_id},
+                                     ${titleId},
+                                     ${au_ord},
+                                     ${royaltyper}
+            )
+        `
+        if (result.rowsAffected[0] > 0) {
+            res.status(201).send({
+                Message: "Author created successfully",
+                Result: true,
+                Data: {
+                    au_id,
+                    titleId,
+                    au_ord,
+                    royaltyper
+                }
+            })
+        } else {
+            res.status(400).send({
+                Message: "Failed to add author",
+                Result: false,
+                Data: null
+            });
+        } 
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            Message: "Error adding new author",
+            Result: false,
+            Data: error
+        });
+    } finally {
+        await sql.close();
+    }
 });
 
 
@@ -557,6 +602,42 @@ app.delete('/title/delete/:id', async (req, res) => {
         console.error(error);
         res.status(500).send({
             Message: "Error connecting to database",
+            Result: false
+        });
+    } finally {
+        await sql.close();
+    }
+});
+
+// Route to delete author associated with title
+app.delete('/title/:title_id/author/delete/:au_id', async (req, res) => {
+    const title_id = req.params.title_id;
+    const au_id = req.params.au_id;
+
+    try {
+        await sql.connect(sqlConfig);
+
+        const result = await sql.query`
+            DELETE FROM titleauthor
+            WHERE title_id = ${title_id}
+            AND au_id = ${au_id}
+        `
+
+        if (result.rowsAffected[0] > 0) {
+            res.status(200).send({
+                Message: "Author deleted successfully from title",
+                Result: true
+            });
+        } else {
+            res.status(404).send({
+                Message: "Author not found",
+                Result: false
+            });
+        }
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            Message: "Error deleting author from title",
             Result: false
         });
     } finally {
