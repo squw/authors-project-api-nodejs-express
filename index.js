@@ -74,6 +74,31 @@ app.get('/title/table-display', async (req, res) => {
     }
 });
 
+
+// Route to display publishers table
+app.get('/publisher/table-display', async (req, res) => {
+    try {
+        await sql.connect(sqlConfig);
+
+        const result = await sql.query`SELECT pub_id, pub_name FROM publishers`;
+
+        res.status(200).send({
+            Message: "Title data retrieved successfully",
+            Result: true,
+            Data: result.recordset
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            Message: "Error retrieving data from title table",
+            Result: false,
+            Data: null
+        })
+    } finally {
+        await sql.close();
+    }
+});
+
 // Route to get data for a specific author by au_id
 app.get('/author/:id', async (req, res) => {
     const authorId = req.params.id;
@@ -258,6 +283,56 @@ app.put('/author/:id/update', async (req, res) => {
     }
 });
 
+
+// Route to update title details
+app.put('/title/:id/update', async (req, res) => {
+
+    const { title_id, title, type, pub_id, price, advance, royalty, ytd_sales, notes, pubdate } = req.body;
+
+    try {
+        await sql.connect(sqlConfig)
+
+        const result = await sql.query`
+            UPDATE titles
+            SET
+                title = ${title},
+                type = ${type},
+                pub_id = ${pub_id},
+                price = ${price},
+                advance = ${advance},
+                royalty = ${royalty},
+                ytd_sales = ${ytd_sales},
+                notes = ${notes},
+                pubdate = ${pubdate}
+            WHERE title_id = ${title_id}
+        `;
+
+
+        if (result.rowsAffected[0] > 0) {
+            res.status(200).send({
+                Message: "Title data updated successfully",
+                Result: true,
+                Data: null
+            })
+        } else {
+            res.status(404).send({
+                Message: "Title not found",
+                Result: false,
+                Data: null
+            });
+        }
+
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            Message: "Error updating title data",
+            Result: false,
+            Data: null
+        });
+    } finally {
+        await sql.close();
+    }
+});
 
 // Route to create new author
 app.post('/author/create', async (req, res) => {
