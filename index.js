@@ -338,7 +338,7 @@ app.put('/title/:id/update', async (req, res) => {
 app.post('/author/create', async (req, res) => {
     const { au_id, au_lname, au_fname, phone, address, city, state, zip, contract } = req.body;
     
-    const phone_post = phone | null;
+    const phone_post = phone || null;
     const address_post = address || null;
     const city_post = city || null;
     const state_post = state || null;
@@ -378,10 +378,10 @@ app.post('/author/create', async (req, res) => {
                     au_lname,
                     au_fname,
                     phone,
-                    address,
-                    city,
-                    state,
-                    zip,
+                    address_post,
+                    city_post,
+                    state_post,
+                    zip_post,
                     contract
                 }
             });
@@ -396,6 +396,71 @@ app.post('/author/create', async (req, res) => {
         console.error(error);
         res.status(500).send({
             Message: "Error creating new author",
+            Result: false,
+            Data: null
+        });
+    } finally {
+        await sql.close();
+    }
+});
+
+
+// Route to create new title
+app.post('/title/create', async (req, res) => {
+    const { title_id, title, type, pub_id, price, advance, royalty, ytd_sales, notes, pubdate } = req.body
+
+    const pub_id_post = pub_id || null
+    const price_post = price || null
+    const advance_post = advance || null
+    const royalty_post = royalty || null
+    const ytd_sales_post = ytd_sales || null
+    const notes_post = notes || null
+
+    try {
+        await sql.connect(sqlConfig)
+
+        const result = await sql.query`
+            INSERT INTO titles
+            VALUES (${title_id},
+                    ${title},
+                    ${type},
+                    ${pub_id_post},
+                    ${price_post},
+                    ${advance_post},
+                    ${royalty_post},
+                    ${ytd_sales_post},
+                    ${notes_post},
+                    ${pubdate})
+        `;
+
+        if (result.rowsAffected[0] > 0) {
+            res.status(201).send({
+                Message: "Title created successfully",
+                Result: true,
+                Data: {
+                    title_id,
+                    title,
+                    type,
+                    pub_id_post,
+                    price_post,
+                    advance_post,
+                    royalty_post,
+                    ytd_sales_post,
+                    notes_post,
+                    pubdate
+                }
+            });
+        } else {
+            res.status(400).send({
+                Message: "Failed to create author",
+                Result: false,
+                Data: null
+            });
+        }
+    } catch (error) {
+        console.error(error);
+        res.status(500).send({
+            Message: "Error creating new title",
             Result: false,
             Data: null
         });
